@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>등원 체크인</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=DM+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: linear-gradient(160deg, #1a56db 0%, #0f3b9e 60%, #1e293b 100%);
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 20px;
+  user-select: none;
+}
+
+.admin-link {
+  position: fixed; top: 16px; right: 20px;
+  background: rgba(255,255,255,0.15); color: #fff;
+  text-decoration: none; font-size: 13px; font-weight: 500;
+  padding: 8px 16px; border-radius: 20px;
+  backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2);
+  transition: background 0.2s;
+}
+.admin-link:hover { background: rgba(255,255,255,0.25); }
+
+.card {
+  background: #fff;
+  border-radius: 32px;
+  padding: 44px 40px 40px;
+  width: 100%; max-width: 400px;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.4);
+  text-align: center;
+}
+
+.logo { font-size: 52px; margin-bottom: 10px; }
+.label-top {
+  font-size: 12px; font-weight: 700; letter-spacing: 2.5px;
+  color: #94a3b8; text-transform: uppercase; margin-bottom: 4px;
+}
+.title { font-size: 24px; font-weight: 900; color: #1e293b; margin-bottom: 6px; }
+.subtitle { font-size: 14px; color: #64748b; margin-bottom: 36px; line-height: 1.6; }
+
+/* 4자리 표시 */
+.digit-display { display: flex; gap: 12px; justify-content: center; margin-bottom: 10px; }
+.digit-box {
+  width: 68px; height: 80px;
+  border: 2.5px solid #e2e8f0; border-radius: 16px;
+  background: #f8fafc;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Mono', monospace; font-size: 36px; font-weight: 600;
+  color: #1e293b; transition: all 0.15s;
+}
+.digit-box.active { border-color: #1a56db; background: #eef2ff; box-shadow: 0 0 0 4px rgba(26,86,219,0.12); }
+.digit-box.filled { border-color: #1a56db; background: #fff; }
+
+.hint-text { font-size: 13px; color: #94a3b8; margin-bottom: 28px; }
+
+/* 키패드 */
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.key {
+  height: 64px; border-radius: 14px;
+  background: #f1f5f9; border: none;
+  font-size: 22px; font-weight: 700; font-family: 'DM Mono', monospace;
+  color: #1e293b; cursor: pointer;
+  transition: all 0.12s; -webkit-tap-highlight-color: transparent;
+}
+.key:hover  { background: #e2e8f0; transform: scale(0.97); }
+.key:active { background: #cbd5e1; transform: scale(0.94); }
+.key-del  { font-size: 20px; color: #64748b; }
+.key-zero { grid-column: 2; }
+
+.send-btn {
+  width: 100%; padding: 18px;
+  background: linear-gradient(135deg, #1a56db, #1340b0);
+  color: #fff; border: none; border-radius: 16px;
+  font-size: 18px; font-weight: 700; font-family: 'Noto Sans KR';
+  cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 6px 20px rgba(26,86,219,0.4);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 4px;
+}
+.send-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(26,86,219,0.5); }
+.send-btn:disabled { background: #cbd5e1; cursor: not-allowed; box-shadow: none; transform: none; }
+
+.clock { font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 24px; font-family: 'DM Mono', monospace; letter-spacing: 1px; }
+
+/* 결과 오버레이 */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(10px);
+  z-index: 100; align-items: center; justify-content: center;
+}
+.overlay.show { display: flex; }
+.result-card {
+  background: #fff; border-radius: 28px;
+  padding: 48px 36px 36px; text-align: center;
+  width: 320px; animation: pop 0.3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes pop {
+  from { transform: scale(0.8) translateY(20px); opacity: 0; }
+  to   { transform: scale(1) translateY(0);      opacity: 1; }
+}
+.r-icon  { font-size: 72px; line-height: 1; margin-bottom: 16px; }
+.r-title { font-size: 22px; font-weight: 900; margin-bottom: 8px; }
+.r-title.ok  { color: #10b981; }
+.r-title.err { color: #ef4444; }
+.r-name  { font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+.r-msg   { font-size: 14px; color: #64748b; line-height: 1.6; margin-bottom: 6px; }
+.r-time  { font-size: 12px; color: #94a3b8; margin-bottom: 28px; }
+.ok-btn {
+  width: 100%; padding: 15px;
+  background: #1e293b; color: #fff; border: none;
+  border-radius: 14px; font-size: 17px; font-weight: 700;
+  font-family: 'Noto Sans KR'; cursor: pointer; transition: background 0.2s;
+}
+.ok-btn:hover { background: #0f172a; }
+
+.spinner {
+  display: inline-block; width: 22px; height: 22px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<a href="/admin" class="admin-link">⚙️ 관리자</a>
+
+<div class="card">
+  <div class="logo">🏫</div>
+  <div class="label-top">등원 체크인</div>
+  <h1 class="title">부모님 번호 입력</h1>
+  <p class="subtitle">부모님 전화번호 뒷자리 <strong>4자리</strong>를<br>눌러주세요</p>
+
+  <div class="digit-display">
+    <div class="digit-box active" id="d0">_</div>
+    <div class="digit-box" id="d1">_</div>
+    <div class="digit-box" id="d2">_</div>
+    <div class="digit-box" id="d3">_</div>
+  </div>
+  <p class="hint-text">예) 010-1234-<strong>5678</strong> → 5678 입력</p>
+
+  <div class="keypad">
+    <button class="key" onclick="pressKey('1')">1</button>
+    <button class="key" onclick="pressKey('2')">2</button>
+    <button class="key" onclick="pressKey('3')">3</button>
+    <button class="key" onclick="pressKey('4')">4</button>
+    <button class="key" onclick="pressKey('5')">5</button>
+    <button class="key" onclick="pressKey('6')">6</button>
+    <button class="key" onclick="pressKey('7')">7</button>
+    <button class="key" onclick="pressKey('8')">8</button>
+    <button class="key" onclick="pressKey('9')">9</button>
+    <button class="key key-del" onclick="pressDelete()">⌫</button>
+    <button class="key key-zero" onclick="pressKey('0')">0</button>
+  </div>
+
+  <button class="send-btn" id="sendBtn" onclick="submitCheckin()" disabled>
+    <span>📨</span> 등원 완료
+  </button>
+</div>
+
+<div class="clock" id="clock"></div>
+
+<div class="overlay" id="overlay">
+  <div class="result-card">
+    <div class="r-icon"  id="rIcon">✅</div>
+    <div class="r-title" id="rTitle">발송 완료!</div>
+    <div class="r-name"  id="rName"></div>
+    <div class="r-msg"   id="rMsg"></div>
+    <div class="r-time"  id="rTime"></div>
+    <button class="ok-btn" onclick="closeResult()">확인</button>
+  </div>
+</div>
+
+<script>
+let digits = [];
+
+function updateClock() {
+  const now  = new Date();
+  const days = ['일','월','화','수','목','금','토'];
+  const d    = `${now.getMonth()+1}/${now.getDate()}(${days[now.getDay()]})`;
+  const t    = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+  document.getElementById('clock').textContent = `${d}  ${t}`;
+}
+updateClock(); setInterval(updateClock, 1000);
+
+function pressKey(n) {
+  if (digits.length >= 4) return;
+  digits.push(n);
+  updateDisplay();
+  if (digits.length === 4) setTimeout(submitCheckin, 120); // 4자리 완성 시 자동 발송
+}
+
+function pressDelete() {
+  digits.pop();
+  updateDisplay();
+}
+
+function updateDisplay() {
+  for (let i = 0; i < 4; i++) {
+    const box = document.getElementById(`d${i}`);
+    box.textContent = digits[i] ?? '_';
+    box.classList.remove('active', 'filled');
+    if (i < digits.length)      box.classList.add('filled');
+    else if (i === digits.length) box.classList.add('active');
+  }
+  document.getElementById('sendBtn').disabled = digits.length !== 4;
+}
+
+async function submitCheckin() {
+  if (digits.length !== 4) return;
+  const last4 = digits.join('');
+
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const res  = await fetch('/api/checkin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ last4 }),
+    });
+    const data = await res.json();
+    showResult(data.success, data);
+  } catch {
+    showResult(false, { message: '네트워크 오류가 발생했습니다.' });
+  } finally {
+    btn.innerHTML = '<span>📨</span> 등원 완료';
+  }
+}
+
+function showResult(ok, data) {
+  document.getElementById('rIcon').textContent  = ok ? '✅' : '❌';
+  document.getElementById('rTitle').textContent = ok ? '발송 완료!' : '오류 발생';
+  document.getElementById('rTitle').className   = 'r-title ' + (ok ? 'ok' : 'err');
+  document.getElementById('rName').textContent  = ok && data.student ? `${data.student} 학생` : '';
+  document.getElementById('rMsg').textContent   = data.message || '';
+  document.getElementById('rTime').textContent  = ok ? `등원 시각: ${data.time || ''}` : '';
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeResult() {
+  document.getElementById('overlay').classList.remove('show');
+  digits = [];
+  updateDisplay();
+}
+
+// 키보드 지원
+document.addEventListener('keydown', e => {
+  if (e.key >= '0' && e.key <= '9') pressKey(e.key);
+  else if (e.key === 'Backspace') pressDelete();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: academy-sms
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SENS_SERVICE_ID
+        sync: false
+      - key: SENS_ACCESS_KEY
+        sync: false
+      - key: SENS_SECRET_KEY
+        sync: false
+      - key: SENS_FROM_NUMBER
+        sync: false

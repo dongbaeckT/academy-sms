@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 — 학생 관리</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f0f4f8; --card: #fff;
+  --primary: #1a56db; --primary-light: #e8f0fe; --primary-dark: #1340b0;
+  --success: #10b981; --danger: #ef4444;
+  --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
+}
+
+body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px 16px; }
+
+.header { max-width: 860px; margin: 0 auto 24px; display: flex; align-items: center; gap: 14px; }
+.header-icon { width: 46px; height: 46px; background: var(--primary); border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(26,86,219,0.3); }
+.header h1 { font-size: 20px; font-weight: 800; }
+.header p  { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.header-right { margin-left: auto; }
+.back-btn { background: var(--primary-light); color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 700; padding: 9px 18px; border-radius: 20px; transition: background 0.15s; }
+.back-btn:hover { background: #c7d9fb; }
+
+/* Config badge */
+.config-bar { max-width: 860px; margin: 0 auto 20px; padding: 12px 18px; border-radius: 12px; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+.config-bar.ok    { background: #d1fae5; color: #065f46; border: 1.5px solid #6ee7b7; }
+.config-bar.warn  { background: #fff7ed; color: #92400e; border: 1.5px solid #fcd34d; }
+
+.wrap { max-width: 860px; margin: 0 auto; display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
+
+.card { background: var(--card); border-radius: 18px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); border: 1px solid var(--border); }
+.card-title { font-size: 15px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+
+/* Form */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 6px; }
+.field input {
+  width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 14px; font-family: 'Noto Sans KR'; color: var(--text);
+  background: #f8fafc; outline: none; transition: all 0.15s;
+}
+.field input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+.field input.mono { font-family: 'DM Mono', monospace; letter-spacing: 1px; }
+
+.add-btn {
+  width: 100%; padding: 13px; background: var(--primary); color: #fff;
+  border: none; border-radius: 12px; font-size: 15px; font-weight: 700;
+  font-family: 'Noto Sans KR'; cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(26,86,219,0.35);
+}
+.add-btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
+.add-btn.editing { background: #f59e0b; box-shadow: 0 4px 14px rgba(245,158,11,0.35); }
+
+.cancel-btn {
+  width: 100%; padding: 10px; background: #f1f5f9; color: var(--muted);
+  border: none; border-radius: 10px; font-size: 14px; font-weight: 600;
+  font-family: 'Noto Sans KR'; cursor: pointer; margin-top: 8px;
+  transition: background 0.15s;
+}
+.cancel-btn:hover { background: #e2e8f0; }
+
+/* Search */
+.search-wrap { position: relative; margin-bottom: 16px; }
+.search-wrap input { width: 100%; padding: 11px 14px 11px 38px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; font-family: 'Noto Sans KR'; background: #f8fafc; outline: none; transition: border-color 0.15s; }
+.search-wrap input:focus { border-color: var(--primary); background: #fff; }
+.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+
+/* Student list */
+.student-list { display: flex; flex-direction: column; gap: 8px; max-height: 560px; overflow-y: auto; padding-right: 4px; }
+.student-list::-webkit-scrollbar { width: 5px; }
+.student-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+.student-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border: 1.5px solid var(--border);
+  border-radius: 12px; background: #fff; transition: all 0.15s;
+}
+.student-row:hover { border-color: #b0c4f5; background: #fafcff; }
+
+.s-avatar { width: 38px; height: 38px; border-radius: 10px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.s-info { flex: 1; min-width: 0; }
+.s-name { font-size: 15px; font-weight: 700; }
+.s-grade { font-size: 12px; color: var(--muted); }
+.s-phone { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.s-phone .last4 { color: var(--primary); font-weight: 700; }
+
+.row-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.edit-btn, .del-btn {
+  padding: 6px 12px; border-radius: 8px; border: none;
+  font-size: 12px; font-weight: 600; font-family: 'Noto Sans KR';
+  cursor: pointer; transition: all 0.15s;
+}
+.edit-btn { background: var(--primary-light); color: var(--primary); }
+.edit-btn:hover { background: #c7d9fb; }
+.del-btn  { background: #fee2e2; color: var(--danger); }
+.del-btn:hover  { background: #fca5a5; }
+
+.empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+.total-badge { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(60px);
+  background: #1e293b; color: #fff; padding: 12px 24px;
+  border-radius: 30px; font-size: 14px; opacity: 0; transition: all 0.3s;
+  z-index: 999; white-space: nowrap; box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { background: var(--success); }
+.toast.error   { background: var(--danger); }
+
+/* Confirm modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; }
+.modal-overlay.show { display: flex; }
+.modal { background: #fff; border-radius: 20px; padding: 28px; width: 320px; text-align: center; box-shadow: 0 16px 48px rgba(0,0,0,0.2); }
+.modal h3 { font-size: 17px; font-weight: 800; margin-bottom: 10px; }
+.modal p  { font-size: 14px; color: var(--muted); margin-bottom: 22px; }
+.modal-btns { display: flex; gap: 10px; }
+.modal-btns button { flex: 1; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; font-family: 'Noto Sans KR'; cursor: pointer; border: none; }
+.btn-cancel { background: #f1f5f9; color: var(--muted); }
+.btn-confirm { background: var(--danger); color: #fff; }
+
+@media (max-width: 680px) {
+  .wrap { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">⚙️</div>
+  <div>
+    <h1>학생 관리</h1>
+    <p>부모님 연락처를 등록 및 관리합니다</p>
+  </div>
+  <div class="header-right">
+    <a href="/" class="back-btn">← 학생 화면으로</a>
+  </div>
+</div>
+
+<div class="config-bar" id="configBar">
+  <span id="configIcon">⏳</span>
+  <span id="configMsg">SENS 연결 확인 중...</span>
+</div>
+
+<div class="wrap">
+  <!-- 등록 폼 -->
+  <div class="card">
+    <div class="card-title"><span>➕</span> 학생 등록</div>
+
+    <input type="hidden" id="editId">
+
+    <div class="field">
+      <label>학생 이름 *</label>
+      <input type="text" id="fName" placeholder="홍길동" maxlength="10">
+    </div>
+    <div class="field">
+      <label>학년 / 반</label>
+      <input type="text" id="fGrade" placeholder="중2" maxlength="10">
+    </div>
+    <div class="field">
+      <label>부모님 호칭</label>
+      <input type="text" id="fParent" placeholder="홍○○ 어머니" maxlength="20">
+    </div>
+    <div class="field">
+      <label>부모님 전화번호 *</label>
+      <input type="text" id="fPhone" class="mono" placeholder="010-1234-5678" maxlength="14"
+        oninput="autoHyphen(this)">
+    </div>
+
+    <button class="add-btn" id="addBtn" onclick="saveStudent()">
+      ➕ 학생 등록하기
+    </button>
+    <button class="cancel-btn" id="cancelBtn" style="display:none" onclick="cancelEdit()">
+      취소
+    </button>
+  </div>
+
+  <!-- 학생 목록 -->
+  <div class="card">
+    <div class="card-title"><span>👦</span> 등록된 학생</div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="이름 또는 번호로 검색..." oninput="renderList()">
+    </div>
+
+    <div class="total-badge" id="totalBadge">총 0명</div>
+    <div class="student-list" id="studentList">
+      <div class="empty-state">
+        <div class="icon">📋</div>
+        <p>아직 등록된 학생이 없습니다<br>왼쪽에서 학생을 추가해주세요</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm modal -->
+<div class="modal-overlay" id="delModal">
+  <div class="modal">
+    <h3>학생 삭제</h3>
+    <p id="delModalMsg">정말 삭제하시겠습니까?</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeDelModal()">취소</button>
+      <button class="btn-confirm" onclick="confirmDelete()">삭제</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let students = [];
+let deleteTargetId = null;
+const EMOJIS = ['😊','😄','🙂','😃','😁','🌟','🎯','🚀','⭐','🎈'];
+
+// ── 초기화 ────────────────────────────────────────────────
+async function init() {
+  await checkConfig();
+  await loadStudents();
+}
+
+async function checkConfig() {
+  try {
+    const res  = await fetch('/api/config-check');
+    const data = await res.json();
+    const bar  = document.getElementById('configBar');
+    if (data.ready) {
+      bar.className = 'config-bar ok';
+      document.getElementById('configIcon').textContent = '✅';
+      document.getElementById('configMsg').textContent  = `SENS 연결 완료 — 발신번호: ${data.from_number_preview}`;
+    } else {
+      bar.className = 'config-bar warn';
+      document.getElementById('configIcon').textContent = '⚠️';
+      document.getElementById('configMsg').textContent  = '.env 파일에 SENS 설정이 필요합니다. 학생 등록은 가능하지만 문자 발송이 안 됩니다.';
+    }
+  } catch {}
+}
+
+async function loadStudents() {
+  try {
+    const res = await fetch('/api/students');
+    students  = await res.json();
+    renderList();
+  } catch { showToast('학생 목록을 불러오지 못했습니다.', 'error'); }
+}
+
+// ── 렌더링 ────────────────────────────────────────────────
+function renderList() {
+  const q    = document.getElementById('searchInput').value.toLowerCase();
+  const list = document.getElementById('studentList');
+  const filtered = students.filter(s =>
+    s.name.includes(q) || s.phone.includes(q) || (s.parent || '').includes(q)
+  );
+
+  document.getElementById('totalBadge').textContent = `총 ${filtered.length}명`;
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>${q ? '검색 결과가 없습니다' : '아직 등록된 학생이 없습니다<br>왼쪽에서 학생을 추가해주세요'}</p></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map((s, i) => {
+    const phone = s.phone;
+    const phoneFmt = phone.replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-$2-$3');
+    const masked   = phoneFmt.slice(0, -4).replace(/\d/g, '●') + `<span class="last4">${phone.slice(-4)}</span>`;
+    const emoji    = EMOJIS[s.id % EMOJIS.length];
+    return `
+    <div class="student-row">
+      <div class="s-avatar">${emoji}</div>
+      <div class="s-info">
+        <div class="s-name">${s.name} <span style="font-weight:400;font-size:12px;color:#94a3b8">${s.grade || ''}</span></div>
+        <div class="s-grade">${s.parent || '—'}</div>
+        <div class="s-phone">${masked}</div>
+      </div>
+      <div class="row-btns">
+        <button class="edit-btn" onclick="startEdit(${s.id})">수정</button>
+        <button class="del-btn"  onclick="openDelModal(${s.id}, '${s.name}')">삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── 등록 / 수정 ───────────────────────────────────────────
+async function saveStudent() {
+  const id     = document.getElementById('editId').value;
+  const name   = document.getElementById('fName').value.trim();
+  const grade  = document.getElementById('fGrade').value.trim();
+  const parent = document.getElementById('fParent').value.trim();
+  const phone  = document.getElementById('fPhone').value.trim();
+
+  if (!name)  { document.getElementById('fName').focus();  return; }
+  if (!phone) { document.getElementById('fPhone').focus(); return; }
+
+  const body = { name, grade, parent, phone };
+  const url  = id ? `/api/students/${id}` : '/api/students';
+  const method = id ? 'PUT' : 'POST';
+
+  try {
+    const res  = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (data.success) {
+      showToast(id ? '✅ 수정되었습니다.' : '✅ 등록되었습니다!', 'success');
+      resetForm();
+      await loadStudents();
+    } else {
+      showToast(data.message, 'error');
+    }
+  } catch { showToast('오류가 발생했습니다.', 'error'); }
+}
+
+function startEdit(id) {
+  const s = students.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('editId').value  = s.id;
+  document.getElementById('fName').value   = s.name;
+  document.getElementById('fGrade').value  = s.grade  || '';
+  document.getElementById('fParent').value = s.parent || '';
+  document.getElementById('fPhone').value  = s.phone.replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-$2-$3');
+  document.getElementById('addBtn').textContent = '✏️ 수정 완료';
+  document.getElementById('addBtn').classList.add('editing');
+  document.getElementById('cancelBtn').style.display = 'block';
+  document.getElementById('fName').focus();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() { resetForm(); }
+
+function resetForm() {
+  ['editId','fName','fGrade','fParent','fPhone'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('addBtn').textContent = '➕ 학생 등록하기';
+  document.getElementById('addBtn').classList.remove('editing');
+  document.getElementById('cancelBtn').style.display = 'none';
+}
+
+// ── 삭제 ─────────────────────────────────────────────────
+function openDelModal(id, name) {
+  deleteTargetId = id;
+  document.getElementById('delModalMsg').textContent = `${name} 학생을 삭제하시겠습니까?`;
+  document.getElementById('delModal').classList.add('show');
+}
+function closeDelModal() { document.getElementById('delModal').classList.remove('show'); }
+
+async function confirmDelete() {
+  closeDelModal();
+  try {
+    await fetch(`/api/students/${deleteTargetId}`, { method: 'DELETE' });
+    showToast('🗑️ 삭제되었습니다.', '');
+    await loadStudents();
+  } catch { showToast('삭제 실패', 'error'); }
+}
+
+// ── 유틸 ─────────────────────────────────────────────────
+function autoHyphen(input) {
+  let v = input.value.replace(/\D/g, '');
+  if (v.length <= 3)       input.value = v;
+  else if (v.length <= 7)  input.value = v.slice(0,3) + '-' + v.slice(3);
+  else                     input.value = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11);
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+document.getElementById('delModal').addEventListener('click', function(e) {
+  if (e.target === this) closeDelModal();
+});
+
+init();
+</script>
+</body>
+</html>
