@@ -175,18 +175,19 @@ def checkin():
 @app.route("/api/config-check")
 def config_check():
     db_ok = False
+    db_error = ""
     try:
         with get_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT 1")
         db_ok = True
-    except Exception:
-        pass
+    except Exception as e:
+        db_error = str(e)
     return jsonify({
         "ready": all([SERVICE_ID, ACCESS_KEY, SECRET_KEY, FROM_NUMBER]) and db_ok,
         "db_ok": db_ok,
+        "db_error": db_error,
         "sens_ok": all([SERVICE_ID, ACCESS_KEY, SECRET_KEY, FROM_NUMBER]),
-        "from_number_preview": FROM_NUMBER[:4] + "****" if FROM_NUMBER else "",
     })
 
 if __name__ == "__main__":
