@@ -125,8 +125,6 @@ def delete_student(sid):
 # ── 등원 체크인 API ────────────────────────────────────────
 @app.route("/api/checkin", methods=["POST"])
 def checkin():
-   @app.route("/api/checkin", methods=["POST"])
-def checkin():
     try:
         d     = request.get_json()
         last4 = d.get("last4", "").strip()
@@ -172,7 +170,7 @@ def checkin():
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
-
+    
 @app.route("/api/config-check")
 def config_check():
     db_ok = False
