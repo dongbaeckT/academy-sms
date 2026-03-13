@@ -125,52 +125,53 @@ def delete_student(sid):
 # ── 등원 체크인 API ────────────────────────────────────────
 @app.route("/api/checkin", methods=["POST"])
 def checkin():
-    d     = request.get_json()
-    last4 = d.get("last4", "").strip()
+   @app.route("/api/checkin", methods=["POST"])
+def checkin():
+    try:
+        d     = request.get_json()
+        last4 = d.get("last4", "").strip()
 
-    if not last4 or len(last4) != 4:
-        return jsonify({"success": False, "message": "뒷자리 4자리를 입력해주세요."}), 400
+        if not last4 or len(last4) != 4:
+            return jsonify({"success": False, "message": "뒷자리 4자리를 입력해주세요."}), 400
 
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM students WHERE RIGHT(phone, 4) = %s", (last4,))
-            matched = cur.fetchall()
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM students WHERE RIGHT(phone, 4) = %s", (last4,))
+                matched = cur.fetchall()
 
-    if not matched:
-        return jsonify({"success": False, "message": "일치하는 번호가 없습니다. 선생님께 문의하세요."}), 404
+        if not matched:
+            return jsonify({"success": False, "message": "일치하는 번호가 없습니다."}), 404
 
-    if not all([SERVICE_ID, ACCESS_KEY, SECRET_KEY, FROM_NUMBER]):
-        return jsonify({"success": False, "message": "SENS 설정이 누락되었습니다."}), 500
+        now  = time.localtime()
+        h, m = now.tm_hour, now.tm_min
+        ampm = "오전" if h < 12 else "오후"
+        disp = h if h <= 12 else h - 12
+        time_str = f"{ampm} {disp}시 {m:02d}분"
 
-    now  = time.localtime()
-    h, m = now.tm_hour, now.tm_min
-    ampm = "오전" if h < 12 else "오후"
-    disp = h if h <= 12 else h - 12
-    time_str = f"{ampm} {disp}시 {m:02d}분"
+        sent_names = []
+        errors = []
+        for student in matched:
+            parent_label = student["parent"] or "학부모"
+            msg = (
+                f"[{student['name']}] 등원 안내\n"
+                f"안녕하세요, {parent_label}님.\n"
+                f"{student['name']} 학생이 {time_str}에 학원에 등원하였습니다."
+            )
+            try:
+                result = send_sms(student["phone"], msg)
+                if result.get("statusCode") == "202":
+                    sent_names.append(student["name"])
+                else:
+                    errors.append(str(result))
+            except Exception as e:
+                errors.append(str(e))
 
-    sent_names = []
-    for student in matched:
-        parent_label = student["parent"] or "학부모"
-        msg = (
-            f"[{student['name']}] 등원 안내\n"
-            f"안녕하세요, {parent_label}님.\n"
-            f"{student['name']} 학생이 {time_str}에 학원에 등원하였습니다. 감사합니다."
-        )
-        try:
-            result = send_sms(student["phone"], msg)
-            if result.get("statusCode") == "202":
-                sent_names.append(student["name"])
-        except Exception:
-            pass
+        if sent_names:
+            return jsonify({"success": True, "message": "문자 발송 완료!", "student": ", ".join(sent_names)})
+        return jsonify({"success": False, "message": "발송 실패", "errors": errors})
 
-    if sent_names:
-        return jsonify({
-            "success": True,
-            "message": "부모님께 등원 문자가 발송되었습니다!",
-            "student": ", ".join(sent_names),
-            "time": time_str,
-        })
-    return jsonify({"success": False, "message": "문자 발송에 실패했습니다."}), 500
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/api/config-check")
 def config_check():
