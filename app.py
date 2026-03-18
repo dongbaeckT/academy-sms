@@ -153,8 +153,7 @@ def checkin():
         for student in matched:
             parent_label = student["parent"] or "학부모"
             msg = (
-                f"[{student['name']}] 등원 안내\n"
-                f"안녕하세요 코딩앤플레이 입니다.\n"
+                f"[코딩앤플레이 등원 안내]\n"
                 f"{student['name']} 학생이 {time_str}에 "
                 f"등원하였습니다."
             )
