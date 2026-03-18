@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from datetime import datetime, timezone, timedelta
 
 load_dotenv()
 app = Flask(__name__)
@@ -140,8 +141,9 @@ def checkin():
         if not matched:
             return jsonify({"success": False, "message": "일치하는 번호가 없습니다."}), 404
 
-        now  = time.localtime()
-        h, m = now.tm_hour, now.tm_min
+        KST = timezone(timedelta(hours=9))
+        now = datetime.now(KST)
+        h, m = now.hour, now.minute
         ampm = "오전" if h < 12 else "오후"
         disp = h if h <= 12 else h - 12
         time_str = f"{ampm} {disp}시 {m:02d}분"
@@ -152,8 +154,8 @@ def checkin():
             parent_label = student["parent"] or "학부모"
             msg = (
                 f"[{student['name']}] 등원 안내\n"
-                f"안녕하세요, {parent_label}님.\n"
-                f"{student['name']} 학생이 {time_str}에 학원에 등원하였습니다."
+                f"안녕하세요 코딩앤플레이 입니다.\n"
+                f"{student['name']} 학생이 {time_str}에 등원하였습니다."
             )
             try:
                 result = send_sms(student["phone"], msg)
